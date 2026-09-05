@@ -103,17 +103,15 @@ This gave hands-on exposure to a modern, cloud-based SIEM stack (Sentinel + Entr
 A few directions this lab is headed:
 
 - **Automated adversary emulation with Caldera** — moving beyond single Atomic Red Team tests toward multi-step, chained operations (recon → credential access → lateral movement) to validate detection coverage across a full attack chain, not just isolated techniques. This also opens the door to a purple-team workflow: run one technique at a time, check Splunk/Sentinel for the expected telemetry, then tune or write a new rule before moving to the next step.
-- **Azure honeypot lab** — planned as part of a broader Azure security roadmap (Sentinel, Defender for Cloud, NSGs, RBAC, Key Vault), not yet completed.
 - **Deeper network-layer visibility** — adding Zeek or Suricata to catch things host logs miss, like C2 beaconing patterns.
 
 ## Takeaways
 
 Building this lab reinforced a few things that don't come across as clearly from studying alone:
 
-- Detection engineering is at least half data plumbing — a perfect detection rule is worthless if the logs never arrive.
 - Mapping every simulated action to a specific MITRE ATT&CK technique makes it possible to reason about detection *coverage* rather than just detection *examples*.
 - Running the same class of problem (credential-based attacks) across two different SIEM stacks (Splunk on-prem, Sentinel in the cloud) highlighted how much of the underlying logic — event IDs, log sources, correlation patterns — carries over even when the tooling changes.
 
 ---
 
-*This lab is ongoing — future posts will cover the Caldera-driven purple team exercises and the Azure honeypot buildout.*
+*This lab is ongoing — future posts will cover the Caldera-driven purple team exercises and much more.*
