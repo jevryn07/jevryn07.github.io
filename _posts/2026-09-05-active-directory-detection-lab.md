@@ -2,11 +2,11 @@
 tags: Projects
 ---
 
-# Building an Active Directory Detection Lab: Attack Simulation, SIEM Integration, and Threat Detection
+# Active Directory Security Lab Writeup
 
 ## Overview
 
-To build hands-on experience for SOC analyst roles, I built a home lab designed to simulate realistic adversary behavior against an Active Directory environment and validate whether that behavior gets detected. The goal wasn't just to run attacks — it was to close the loop: simulate a technique, confirm the telemetry it generates, and write a detection rule that catches it.
+To build hands-on experience in cyber, I built a home lab designed to simulate realistic adversary behavior against an Active Directory environment and validate whether that behavior gets detected. The goal wasn't just to run attacks — it was to close the loop: simulate a technique, confirm the telemetry it generates, and write a detection rule that catches it.
 
 The lab runs entirely on **VirtualBox** on a Windows PC with 32GB of RAM, giving enough headroom to run a domain controller, a client, an attacker box, and a SIEM simultaneously.
 
@@ -86,17 +86,6 @@ index=your_index_name sourcetype="XmlWinEventLog" source="XmlWinEventLog:Microso
 ```
 
 filtered further by `EventCode` — e.g. `EventCode=1` for process creation, `EventCode=3` for network connections. It's an easy gap to miss: Security logs flowing can make the pipeline look "done" while Sysmon is silently not being collected at all.
-
-## Cloud Extension: Microsoft Sentinel
-
-To round out the lab with cloud-native SIEM experience, I stood up a parallel **Microsoft Sentinel** environment:
-
-- Integrated **Microsoft Entra ID** sign-in logs via a **Log Analytics Workspace**.
-- Wrote **KQL (Kusto Query Language)** detection rules targeting suspicious login patterns and credential access behavior, including:
-  - **MITRE ATT&CK T1212** — Exploitation for Credential Access
-- Configured **analytic rules** in Azure with automated alert triggers, so matching log patterns generate an actual alert rather than requiring a manual search.
-
-This gave hands-on exposure to a modern, cloud-based SIEM stack (Sentinel + Entra ID + Log Analytics) alongside the on-prem Splunk setup, which reflects how a lot of real-world environments are hybrid.
 
 ## What's Next
 
