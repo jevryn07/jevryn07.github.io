@@ -1,1 +1,1 @@
-I'm an Management Information Systems student at Florida Atlantic University building a virtual home lab from scratch — deploying Active Directory environments, simulating real attacks with Kali and Atomic Red Team, and writing detection rules in Splunk and Sentinel. This blog is where I document what breaks, what I learn, and how I fix it.
+I'm a Management Information Systems student at Florida Atlantic University building a virtual home lab from scratch. This is where I post my projects, what I'm learning, and my growth along the way.
