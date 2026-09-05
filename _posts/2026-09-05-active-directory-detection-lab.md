@@ -1,5 +1,5 @@
 ---
-tags: Active Directory
+tags: Projects
 ---
 
 # Building an Active Directory Detection Lab: Attack Simulation, SIEM Integration, and Threat Detection
