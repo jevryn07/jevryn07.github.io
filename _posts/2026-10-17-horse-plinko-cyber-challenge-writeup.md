@@ -6,7 +6,7 @@ tags: Projects
 
 ## Overview
 
-This was part of **Horse Plinko**, a blue team exercise hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI, against a red team that had already planted persistence and sabotage on the box before I started.
+This was a part of the Horse Plinko Cyber Challenge, a blue team competition hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI, against a red team that had already planted persistence and sabotage on the box before I started.
 
 Over the course of the engagement I had to deal with, from the red team:
 
