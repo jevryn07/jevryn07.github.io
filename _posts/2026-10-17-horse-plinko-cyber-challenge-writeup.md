@@ -40,6 +40,25 @@ The scoring dashboard shows each check as a row of green and red bars, with the 
 | Scored services | SSH (logs in as jmoney with a password, runs `echo ok`) and Open WebUI (jmoney@plinko.horse, backed by Ollama) |
 | Services on the box | Ollama (port 11434) — LLM backend for Open WebUI, node-exporter (port 9100), OpenTelemetry collector (127.0.0.1:8888) — ships journal/audit logs to OpenObserve on blackbox |
 
+## First things after SSHing in
+
+Before any of the investigating below, the first few minutes on a box matter most — the red team has the same Blue Team Packet I do, which means they already have the default credentials. I worked through the standard checklist from the competition's Linux hardening guide, adapted for Fedora:
+
+- **Reset default credentials.** Both `plinktern` and `jmoney` start on the stock password from the packet (zeroes, not the letter O). Changed both with `passwd` before doing anything else.
+- **Updated the scoring engine's copy of the password immediately after.** The instant `jmoney`'s password changes locally, NEIGH's own record of it goes stale — I went straight to the **Users** tab on the scoreboard and updated it there too. Skipping this step fails the SSH check even with a perfectly good login on the box itself. I did not touch `jmoney`'s shell or disable the account at this point — on Fedora that's `/sbin/nologin`, and a disabled or shell-less `jmoney` fails its own check (which, ironically, is exactly what the red team did to me later).
+- **Locked down `/etc/ssh/sshd_config`.** Fedora manages sshd through `systemctl` like most modern distros, so the workflow is: edit the config, validate it, then restart.
+  - `PermitRootLogin no`
+  - `PermitEmptyPasswords no`
+  - `Protocol 2` (Fedora 38's OpenSSH only speaks protocol 2 anyway, but worth setting explicitly)
+  - Turned off `X11Forwarding` and `AllowTcpForwarding`, since nothing on this box needed either
+  - Left password auth on for jmoney, since that's how the scoring checker logs in
+  - Validated with `sudo sshd -t` before restarting with `sudo systemctl restart sshd`
+- **Checked firewalld and SELinux**, since Fedora runs both by default (unlike a lot of other distros used in these competitions): `sudo firewall-cmd --list-all` and `sudo sestatus`, to make sure the red team hadn't already disabled or loosened either.
+- **Took a baseline of services and ports** with `systemctl list-unit-files --state=enabled` and `ss -tulpn`, before I knew anything was planted — this is what made the later `telnet-bash.socket` finding stand out as new.
+- **Reviewed `/etc/passwd`, `/etc/group`, and `/etc/sudoers`** for accounts that shouldn't be there.
+
+None of this would have mattered much if I'd missed the NEIGH password sync — that's the step that's easy to forget once you're deep in a shell, and it's the difference between a real fix and a fix that still shows red on the scoreboard.
+
 ## SSH check down
 
 This was the first sign something was wrong with scoring. The checker logged in fine (authenticated in about 80 ms), but every command came back with "This account is currently not available." That message comes from `/sbin/nologin`, so I knew the account's shell had been changed.
