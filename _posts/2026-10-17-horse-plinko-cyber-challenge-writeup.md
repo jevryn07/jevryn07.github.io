@@ -70,6 +70,7 @@ All on Oct 17. Times are approximate and in Eastern. Steps are in the order I di
 | 18 | — | Checked `/etc/ssh/sshd_config` and found `PermitRootLogin` uncommented and set to `yes`. Changed it to `no`, tested the config with `sudo sshd -t`, and restarted sshd. |
 
 ![Escaping into a bare bash shell: uvicorn access logs above a plain -bash-5.2$ prompt](/assets/img/horse-plinko/02-escaping-roulette.png)
+
 *Right after my shell escape got me out of the roulette and into a real bash shell — the bare prompt is what tipped me off that the config files were missing.*
 
 ## Findings
@@ -90,21 +91,27 @@ Anything in `/etc/profile.d/` runs every time someone opens a shell, including t
 | Root login allowed over SSH | `PermitRootLogin yes` in `/etc/ssh/sshd_config` | Reviewed sshd_config while hardening SSH | Set to `no`, tested with `sudo sshd -t`, restarted sshd |
 
 ![Combined ss -tulpn and systemctl list-sockets output exposing telnet-bash.socket, followed by the root wall broadcast and the commands used to remove it](/assets/img/horse-plinko/07-telnet-backdoor.png)
+
 *`sudo ss -tulpn` showed port 23 owned by systemd itself; `systemctl list-sockets` tied it to `telnet-bash.socket`. Partway through, root's "that's alot of red huh" broadcast came through — then I disabled the socket, stopped running instances, deleted both unit files, and reloaded systemd.*
 
 ![rpm -qf loop over /etc/profile.d/ flagging 99-horse.sh and hugepages-compactd.sh as not owned by any package](/assets/img/horse-plinko/03-finding-startup-scripts.png)
+
 *After `/etc/bashrc` came back stock, looping `rpm -qf` over `/etc/profile.d/` flagged the two files no package installed — you can see the horse banner firing on my own failed `ls` and `cat` commands right above.*
 
 ![nano open on 99-horse.sh showing the HPCC-REDTEAM:troll-banner markers and the bash ERR trap](/assets/img/horse-plinko/04-inside-horse-script.png)
+
 *Opening `99-horse.sh` confirmed it was red team work — wrapped in `HPCC-REDTEAM:troll-banner` markers, setting a bash `ERR` trap that prints the "You have an error!" box on every failed command.*
 
 ![rpm -qf loop over /etc/cron.d/ flagging audit-backlogd and systemd-tmpfiles as not owned by any package](/assets/img/horse-plinko/05-finding-cron-jobs.png)
+
 *The same ownership check against `/etc/cron.d/` after the SSH check kept flipping back to red. The `/etc/cron.daily/*` line is a false alarm from an empty folder.*
 
 ![Terminal showing MHAHAHAHA and repeated sudo nano systemd-tmpfiles text appearing unprompted, with rm failing on files that were right there](/assets/img/horse-plinko/06-someone-else-typing.png)
+
 *While trying to delete the cron files, this showed up in my command line — text I never typed, and `rm` failing with "No such file or directory" on files that were clearly still there. The red team was actively interacting with my session.*
 
 ![sshd_config with PermitRootLogin uncommented and set to yes](/assets/img/horse-plinko/08-permitrootlogin-yes.png)
+
 *`PermitRootLogin yes` sitting uncommented in `/etc/ssh/sshd_config` — likely how the red team kept getting back in as root.*
 
 At 3:06 PM, root sent a `wall` broadcast to every terminal: "that's alot of red huh." The red team still had root on the box at that point.
@@ -141,6 +148,7 @@ The firewall had nothing planted in it. The public zone on eth0 allowed `dhcpv6-
 Nothing on this box listens on port 80, and Open WebUI does not show up in the `ss` output. Open WebUI depends on a web server and database server run from a separate Windows host, so it's likely served from there — I have not confirmed this.
 
 ![Initial ss -tulpn run without sudo, showing listeners on 9100, 8888, and 11434 with no process names](/assets/img/horse-plinko/11-listening-ports.png)
+
 *This first `ss -tulpn` run was without `sudo`, so the process names are blank. Rerunning it with `sudo` later is what led to the telnet backdoor.*
 
 | Port | Bound to | Likely service | Notes |

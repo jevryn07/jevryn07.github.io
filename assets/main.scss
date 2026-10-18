@@ -3,33 +3,69 @@
 
 @charset "utf-8";
 
-// Blue-team accent palette
-$brand-color:       #1d4ed8 !default;
-$brand-color-light: lighten($brand-color, 42%) !default;
-$brand-color-dark:  darken($brand-color, 12%) !default;
+// Deep blue, almost-black dark theme
+$background-color: #070b14 !default;
+$text-color:       #dbe4f5 !default;
 
-$site-title-color: $brand-color-dark !default;
+// Primary accent: bright blue (brought up in luminance to read against near-black)
+$brand-color:       #5b9dff !default;
+$brand-color-light: #15203a !default;
+$brand-color-dark:  #9cc1ff !default;
 
-$text-color:       #1a1a1a !default;
-$background-color: #fdfdfe !default;
+// Secondary / tertiary accents for variety
+$accent-cyan:   #2dd4bf !default;
+$accent-amber:  #fbbf24 !default;
+$accent-purple: #c678dd !default;
+
+$site-title-color: $brand-color !default;
 
 $link-base-color:    $brand-color !default;
-$link-visited-color: darken($brand-color, 8%) !default;
-$link-hover-color:   lighten($brand-color, 12%) !default;
+$link-visited-color: $accent-purple !default;
+$link-hover-color:   $brand-color-dark !default;
 
-$border-color-01: $brand-color-light !default;
-$border-color-02: lighten($brand-color, 30%) !default;
+$border-color-01: #223055 !default;
+$border-color-02: #182239 !default;
 $border-color-03: $brand-color !default;
 
 $table-text-color:      $text-color !default;
-$table-zebra-color:     lighten($brand-color, 48%) !default;
-$table-header-bg-color: $brand-color !default;
-$table-header-border:   darken($brand-color, 15%) !default;
-$table-border-color:    $brand-color-light !default;
+$table-zebra-color:     #0d1526 !default;
+$table-header-bg-color: #112140 !default;
+$table-header-border:   $brand-color !default;
+$table-border-color:    $border-color-01 !default;
 
 @import "minima";
 
-// Extra accents on top of the theme
+// ---- Dark-mode cleanup for rules minima hardcodes outside the variables above ----
+body {
+  background-color: $background-color;
+}
+
+.site-header {
+  border-top-color: $brand-color;
+  border-bottom-color: $border-color-01;
+  background: linear-gradient(90deg, #0a1428, #070b14 60%);
+}
+
+.site-footer {
+  border-top-color: $border-color-01;
+}
+
+pre, code {
+  background-color: #0d1424;
+  border-color: $border-color-01;
+  color: $text-color;
+}
+
+.highlighter-rouge .highlight {
+  background: #0d1424;
+}
+
+input, textarea {
+  background-color: #0d1424;
+  color: $text-color;
+}
+
+// ---- Extra color accents on top of the theme ----
 .post-content h2 {
   color: $brand-color-dark;
   border-bottom: 3px solid $brand-color;
@@ -37,18 +73,32 @@ $table-border-color:    $brand-color-light !default;
 }
 
 .post-content h3 {
-  color: $brand-color-dark;
+  color: $accent-cyan;
 }
 
 .post-content table th {
   color: #fff;
 }
 
-.post-content code {
-  color: $brand-color-dark;
-  background-color: $brand-color-light;
+.post-content table tr:nth-child(even) {
+  background-color: $table-zebra-color;
+}
+
+.post-content code:not(pre code) {
+  color: $accent-amber;
+  background-color: #1a1408;
+  border-color: #3a2e0f;
+}
+
+.post-content blockquote {
+  color: $accent-cyan;
+  border-left: 4px solid $accent-purple;
 }
 
 .post-content a {
-  text-decoration-color: $brand-color-light;
+  text-decoration-color: $accent-cyan;
+}
+
+.post-meta {
+  color: $accent-cyan;
 }
