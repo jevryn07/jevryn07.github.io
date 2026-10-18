@@ -81,8 +81,21 @@ input, textarea {
   color: $accent-cyan;
 }
 
+// minima hardcodes table colors (bg/border/text) rather than wiring them to
+// the $table-* variables above, so override directly here.
+.post-content table {
+  color: $text-color;
+  border-color: $border-color-01;
+}
+
 .post-content table th {
   color: #fff;
+  background-color: $table-header-bg-color;
+  border-color: $table-header-border;
+}
+
+.post-content table td {
+  border-color: $border-color-01;
 }
 
 .post-content table tr:nth-child(even) {
