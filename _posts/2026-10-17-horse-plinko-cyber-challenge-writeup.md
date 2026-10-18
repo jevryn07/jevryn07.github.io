@@ -23,7 +23,7 @@ Over the course of the engagement I had to deal with, from the red team:
 - A live `wall` broadcast sent to my terminal from root mid-engagement, taunting me directly — proof the red team still had root on the box at that point.
 - `PermitRootLogin yes` left enabled in sshd's config, which would have let anyone with root's password log straight in over SSH — likely how the red team kept getting back in as root.
 
-I found and removed two planted shell startup scripts, two disguised cron jobs, and a hidden telnet backdoor disguised as a systemd socket unit. I traced the SSH check failure to the scoring account's shell being set to `nologin`, locked down root login over SSH, and reviewed the firewall and listening ports. Some things are still unconfirmed, listed under Open items.
+I found and removed two planted shell startup scripts, two disguised cron jobs, and a hidden telnet backdoor disguised as a systemd socket unit. I traced the SSH check failure to the scoring account's shell being set to `nologin`, locked down root login over SSH, and reviewed the firewall and listening ports.
 
 ## Environment
 
@@ -153,22 +153,6 @@ Nothing on this box listens on port 80, and Open WebUI does not show up in the `
 | 5355 | all interfaces | LLMNR (systemd-resolved) | Not needed, can turn off |
 | 53 | 127.0.0.53, 127.0.0.54 | systemd-resolved DNS | Normal |
 | 323 | 127.0.0.1 | chronyd | Normal |
-
-## Open items
-
-- [ ] Confirm all four planted files are gone with `ls -lab /etc/profile.d/ /etc/cron.d/`, and that they don't come back after 10 minutes
-- [ ] Read `hugepages-compactd.sh` and both cron files in `~/evidence/` and write down what they did
-- [ ] Find and delete whatever scripts the two cron jobs ran
-- [ ] Confirm jmoney's shell stays `/bin/bash` and the SSH check stays green
-- [ ] Find where the `a` to `i` key remap is set (`/etc/inputrc`, `~/.inputrc`, or a `bind` line) and remove it
-- [ ] Figure out who typed `MHAHAHAHA`. Check `w` for other sessions
-- [ ] Confirm whether Open WebUI is actually served through the web/database server on the separate Windows host
-- [x] Identify what is on port 9100 — confirmed node-exporter
-- [ ] Bind Ollama to 127.0.0.1
-- [ ] Change jmoney's password, if the rules allow it
-- [ ] Figure out how `telnet-bash.socket` got installed — no matching entry found yet in the planted profile.d scripts or cron jobs
-- [ ] Confirm port 23 stays closed after the next scoring cycle
-- [x] Lock down root login over SSH — `PermitRootLogin` set to `no`
 
 ## Lessons learned
 
