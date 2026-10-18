@@ -46,6 +46,11 @@ body {
   background: linear-gradient(90deg, #0a1428, #070b14 60%);
 }
 
+.site-title,
+.site-title:visited {
+  color: $brand-color-dark;
+}
+
 .site-footer {
   border-top-color: $border-color-01;
 }
