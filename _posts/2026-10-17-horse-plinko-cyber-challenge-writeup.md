@@ -18,8 +18,10 @@ Over the course of the engagement I had to deal with, from the red team:
 - A taunting `MHAHAHAHA` left in my own command history, suggesting someone else was active on the box at the same time as me.
 - A keyboard remap that silently swapped the `a` and `i` keys mid-session.
 - A flood of password logins from rotating source IPs that looked like a brute-force attack at first, but turned out to be the scoring checker itself — a false alarm I had to rule out before touching SSH hardening.
+- A hidden backdoor: a custom systemd socket unit listening on port 23 that spawned a bash shell for anyone who connected, no authentication at all.
+- A live `wall` broadcast sent to my terminal from root mid-engagement, taunting me directly — more proof someone else had concurrent access to the box while I was working.
 
-I found and removed two planted shell startup scripts and two disguised cron jobs, traced the SSH check failure to the scoring account's shell being set to `nologin`, and reviewed the firewall and listening ports. Some things are still unconfirmed, listed under Open items.
+I found and removed two planted shell startup scripts, two disguised cron jobs, and a hidden telnet backdoor disguised as a systemd socket unit. I traced the SSH check failure to the scoring account's shell being set to `nologin`, and reviewed the firewall and listening ports. Some things are still unconfirmed, listed under Open items.
 
 ## Environment
 
@@ -54,12 +56,17 @@ All on Oct 17. Times are approximate and in Eastern. Steps are in the order I di
 | 12 | — | Copied all four planted files to `~/evidence/`, cleared immutable flags, and deleted them. |
 | 13 | — | Reviewed firewalld and listening ports. |
 | 14 | — | The `a` key started typing `i` in my SSH session. |
+| 15 | — | While reviewing listening ports with `ss -tulpn`, found an unexpected listener on port 23 tied to a custom systemd socket, `telnet-bash.socket`, that spawned a bash shell for anyone who connected — basically an unauthenticated backdoor. |
+| 16 | ~3:05 PM | A live `wall` broadcast came through from root on the box: "that's alot of red huh." Confirmation someone else had concurrent root access while I was working. |
+| 17 | — | Disabled and removed `telnet-bash.socket` and `telnet-bash@.service`, reloaded systemd, and confirmed port 23 was closed. |
 
 ## Findings
 
 The red team mostly hid things by naming them after real Linux components. The fastest way to catch them was asking the package manager which files no package installed.
 
 Anything in `/etc/profile.d/` runs every time someone opens a shell, including the scoring check's SSH session. So `hugepages-compactd.sh` ran on every check, and as root whenever I opened a root shell.
+
+The planted files were also tagged internally with comments like `# >>> HPCC-REDTEAM:troll-banner >>>`, which confirmed they were deliberately placed by the exercise's red team rather than something pre-existing on the box.
 
 | Finding | Location | How I found it | Action |
 |---|---|---|---|
@@ -69,6 +76,7 @@ Anything in `/etc/profile.d/` runs every time someone opens a shell, including t
 | Disguised cron job | `/etc/cron.d/systemd-tmpfiles` | Same check. The real systemd-tmpfiles runs from a systemd timer, not cron | Saved to evidence, deleted |
 | Scoring account broken | jmoney's login shell set to `/sbin/nologin` | Dashboard stdout said "This account is currently not available" | Set back to `/bin/bash` |
 | Key remap | `a` types `i` in bash | Noticed while typing | Source not found yet |
+| Backdoor shell | `/etc/systemd/system/telnet-bash.socket`, `/etc/systemd/system/telnet-bash@.service` | `ss -tulpn` and `systemctl list-sockets --all` showed a `:23` listener with no real telnetd behind it — a custom unit spawning a bash shell per connection | Disabled, stopped, deleted both unit files, reloaded systemd |
 
 ## Scored SSH check
 
@@ -90,9 +98,10 @@ The firewall had nothing planted in it. The public zone on eth0 allowed `dhcpv6-
 | Port | Bound to | Likely service | Notes |
 |---|---|---|---|
 | 22 | all interfaces | sshd | Scored, keep open |
+| 23 | all interfaces | Backdoor: planted `telnet-bash.socket` | Found live, removed |
 | 8888 | 127.0.0.1 | Open WebUI (uvicorn) | Localhost only, good |
 | 11434 | all interfaces | Ollama | No auth. Should be bound to 127.0.0.1 |
-| 9100 | all interfaces | Unknown, often node_exporter | Not confirmed |
+| 9100 | all interfaces | node_exporter, confirmed via `systemctl list-sockets` | Legitimate monitoring exporter, but still exposed on all interfaces — should be restricted |
 | 5355 | all interfaces | LLMNR (systemd-resolved) | Not needed, can turn off |
 | 53 | 127.0.0.53, 127.0.0.54 | systemd-resolved DNS | Normal |
 | 323 | 127.0.0.1 | chronyd | Normal |
@@ -108,9 +117,11 @@ One thing does not add up. The firewall allows port 80, but nothing listens on 8
 - [ ] Find where the `a` to `i` key remap is set (`/etc/inputrc`, `~/.inputrc`, or a `bind` line) and remove it
 - [ ] Figure out who typed `MHAHAHAHA`. Check `w` for other sessions
 - [ ] Find what passes port 80 traffic to Open WebUI on 127.0.0.1:8888
-- [ ] Identify what is on port 9100
+- [x] Identify what is on port 9100 — confirmed node_exporter
 - [ ] Bind Ollama to 127.0.0.1
 - [ ] Change jmoney's password, if the rules allow it
+- [ ] Figure out how `telnet-bash.socket` got installed — no matching entry found yet in the planted profile.d scripts or cron jobs
+- [ ] Confirm port 23 stays closed after the next scoring cycle
 
 ## Lessons learned
 
@@ -120,3 +131,4 @@ One thing does not add up. The firewall allows port 80, but nothing listens on 8
 - **Check the whole startup path.** Scripts in `/etc/profile.d/` run for every shell, including the scoring check's SSH session, so a planted script there can break scoring.
 - **Save evidence before deleting.** Copying files to `~/evidence/` first means I can still go back and see what they did.
 - **Check for other people on the box early.** `w` should be one of the first commands, not something I think of after weird text shows up.
+- **A listening port doesn't mean a running daemon.** The telnet backdoor only showed up because systemd socket activation spawns the process on connection — `systemctl list-sockets --all` next to `ss -tulpn` is what caught it.
