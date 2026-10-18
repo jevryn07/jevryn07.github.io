@@ -2,11 +2,22 @@
 tags: Projects
 ---
 
-# Blue Team Writeup: ignition-13
+# Horse Plinko Cyber Challenge Writeup
 
 ## Overview
 
-This was part of **Horse Plinko**, a blue team exercise hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI. The red team had left at least five pieces of persistence or sabotage on it, and the scored SSH check was failing because of one of them.
+This was part of **Horse Plinko**, a blue team exercise hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI, against a red team that had already planted persistence and sabotage on the box before I started.
+
+Over the course of the engagement I had to deal with, from the red team:
+
+- A wiped-out shell profile in my own home directory that broke my prompt and config.
+- A scripted "the horse says: no" error trap that fired on every failed command in my shell.
+- Two disguised startup scripts hidden in `/etc/profile.d/`, one named to look like a legitimate kernel memory-management feature, that ran on every shell session — including the scoring check's.
+- Two disguised cron jobs in `/etc/cron.d/` posing as real systemd and audit components.
+- The scored account's login shell silently flipped to `/sbin/nologin`, which took down the SSH check and kept re-breaking it even after I fixed it, pointing to one of the planted scripts or cron jobs resetting it.
+- A taunting `MHAHAHAHA` left in my own command history, suggesting someone else was active on the box at the same time as me.
+- A keyboard remap that silently swapped the `a` and `i` keys mid-session.
+- A flood of password logins from rotating source IPs that looked like a brute-force attack at first, but turned out to be the scoring checker itself — a false alarm I had to rule out before touching SSH hardening.
 
 I found and removed two planted shell startup scripts and two disguised cron jobs, traced the SSH check failure to the scoring account's shell being set to `nologin`, and reviewed the firewall and listening ports. Some things are still unconfirmed, listed under Open items.
 
