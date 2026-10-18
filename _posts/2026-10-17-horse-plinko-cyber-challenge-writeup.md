@@ -36,16 +36,16 @@ The scoring dashboard shows each check as a row of green and red bars, with the 
 
 ## Timeline
 
-All on Oct 17. Times are approximate and in UTC where the logs gave one (Eastern is UTC minus 4). Steps are in the order I did them.
+All on Oct 17. Times are approximate and in Eastern. Steps are in the order I did them.
 
-| # | Approx. time (UTC) | What happened |
+| # | Approx. time (Eastern) | What happened |
 |---|---|---|
 | 1 | — | Noticed the shell prompt was `-bash-5.2$`. My home directory had no bash config files. Copied them from `/etc/skel` and the normal prompt came back. |
 | 2 | — | Scoring dashboard showed SSH down: it authenticated, then got "This account is currently not available." |
 | 3 | — | Every failed command in my shell printed a "the horse says: no" box. |
-| 4 | ~8:30–8:35 PM | sshd logs showed a steady stream of `Accepted password for jmoney` from many different IPs, about every 10 to 30 seconds. |
-| 5 | ~8:34 PM | My own login as plinktern from 172.16.13.250. |
-| 6 | ~8:34 PM | A jmoney login from 6.214.117.28 matched the failed SSH check on the dashboard (around 4:34 PM Eastern). |
+| 4 | ~4:30–4:35 PM | sshd logs showed a steady stream of `Accepted password for jmoney` from many different IPs, about every 10 to 30 seconds. |
+| 5 | ~4:34 PM | My own login as plinktern from 172.16.13.250. |
+| 6 | ~4:34 PM | A jmoney login from 6.214.117.28 matched the failed SSH check on the dashboard around this same time. |
 | 7 | — | Checked `/etc/bashrc`. It was stock. Checked `/etc/profile.d/` for files no package owns and found `99-horse.sh` and `hugepages-compactd.sh`. |
 | 8 | — | SSH check started flapping between green and red. Still the nologin message. |
 | 9 | — | Restarted sshd and firewalld. |
@@ -74,7 +74,7 @@ Anything in `/etc/profile.d/` runs every time someone opens a shell, including t
 
 The SSH check failed because jmoney's shell was set to `/sbin/nologin`. The checker could log in, but nologin kills every command, so `echo ok` exited with status 1.
 
-At first I thought the flood of `Accepted password for jmoney` logins from random IPs was an attack. Then I matched one at around 8:34 PM UTC to the dashboard's failed check at around 4:34 PM Eastern. That told me the checker logs in as jmoney, with a password, from rotating source IPs.
+At first I thought the flood of `Accepted password for jmoney` logins from random IPs was an attack. Then I matched one, around 4:34 PM Eastern, to the dashboard's failed check at that same time. That told me the checker logs in as jmoney, with a password, from rotating source IPs.
 
 This changed my plan in two ways:
 
