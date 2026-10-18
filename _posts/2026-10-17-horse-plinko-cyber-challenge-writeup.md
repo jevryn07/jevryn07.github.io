@@ -2,26 +2,28 @@
 tags: Projects
 ---
 
-# Horse Plinko Cyber Challenge Writeup
+# Horse Plinko Cyber Challenge Writeup: ignition-13
 
 ## Overview
 
-This was a part of the Horse Plinko Cyber Challenge, a blue team competition hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI, against a red team that had already planted persistence and sabotage on the box before I started.
+This was a part of the Horse Plinko Cyber Challenge, a blue team competition hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI, against a red team that had already planted persistence and sabotage on the box before I started. The red team had left at least seven pieces of persistence or sabotage on it, and the scored SSH check was failing because of one of them.
 
 Over the course of the engagement I had to deal with, from the red team:
 
+- A restricted startup shell I had to escape out of just to get a real bash prompt.
 - A wiped-out shell profile in my own home directory that broke my prompt and config.
 - A scripted "the horse says: no" error trap that fired on every failed command in my shell.
 - Two disguised startup scripts hidden in `/etc/profile.d/`, one named to look like a legitimate kernel memory-management feature, that ran on every shell session — including the scoring check's.
 - Two disguised cron jobs in `/etc/cron.d/` posing as real systemd and audit components.
 - The scored account's login shell silently flipped to `/sbin/nologin`, which took down the SSH check and kept re-breaking it even after I fixed it, pointing to one of the planted scripts or cron jobs resetting it.
-- A taunting `MHAHAHAHA` left in my own command history, suggesting someone else was active on the box at the same time as me.
+- Someone typing into my own session in real time — `MHAHAHAHA` and repeated `sudo nano systemd-tmpfiles` commands I never ran, while my own `rm` attempts mysteriously failed with "No such file or directory."
 - A keyboard remap that silently swapped the `a` and `i` keys mid-session.
 - A flood of password logins from rotating source IPs that looked like a brute-force attack at first, but turned out to be the scoring checker itself — a false alarm I had to rule out before touching SSH hardening.
 - A hidden backdoor: a custom systemd socket unit listening on port 23 that spawned a bash shell for anyone who connected, no authentication at all.
-- A live `wall` broadcast sent to my terminal from root mid-engagement, taunting me directly — more proof someone else had concurrent access to the box while I was working.
+- A live `wall` broadcast sent to my terminal from root mid-engagement, taunting me directly — proof the red team still had root on the box at that point.
+- `PermitRootLogin yes` left enabled in sshd's config, which would have let anyone with root's password log straight in over SSH — likely how the red team kept getting back in as root.
 
-I found and removed two planted shell startup scripts, two disguised cron jobs, and a hidden telnet backdoor disguised as a systemd socket unit. I traced the SSH check failure to the scoring account's shell being set to `nologin`, and reviewed the firewall and listening ports. Some things are still unconfirmed, listed under Open items.
+I found and removed two planted shell startup scripts, two disguised cron jobs, and a hidden telnet backdoor disguised as a systemd socket unit. I traced the SSH check failure to the scoring account's shell being set to `nologin`, locked down root login over SSH, and reviewed the firewall and listening ports. Some things are still unconfirmed, listed under Open items.
 
 ## Environment
 
@@ -33,8 +35,12 @@ The scoring dashboard shows each check as a row of green and red bars, with the 
 | OS | Fedora, bash 5.2, firewalld, SELinux |
 | Internal IP | 172.16.13.20 |
 | My account | plinktern, connecting from 172.16.13.250 |
-| Scored services | SSH (logs in as jmoney with a password, runs `echo ok`) and Open WebUI |
-| Apps on the box | Open WebUI (uvicorn on 127.0.0.1:8888), Ollama (port 11434) |
+| Scored services | SSH (logs in as jmoney with a password, runs `echo ok`) and Open WebUI, which depends on a web server and database server run from a separate Windows host |
+| Services on the box | Ollama (port 11434), node-exporter (port 9100), OpenTelemetry collector (127.0.0.1:8888) |
+
+## SSH check down
+
+This was the first sign something was wrong with scoring. The checker logged in fine (authenticated in about 80 ms), but every command came back with "This account is currently not available." That message comes from `/sbin/nologin`, so I knew the account's shell had been changed.
 
 ## Timeline
 
@@ -42,7 +48,7 @@ All on Oct 17. Times are approximate and in Eastern. Steps are in the order I di
 
 | # | Approx. time (Eastern) | What happened |
 |---|---|---|
-| 1 | — | Noticed the shell prompt was `-bash-5.2$`. My home directory had no bash config files. Copied them from `/etc/skel` and the normal prompt came back. |
+| 1 | — | Escaped a restricted startup shell to get into a real bash shell, which showed bash's bare default prompt, `-bash-5.2$`, because my home directory had no bash config files. Copied them from `/etc/skel` and the normal prompt came back. |
 | 2 | — | Scoring dashboard showed SSH down: it authenticated, then got "This account is currently not available." |
 | 3 | — | Every failed command in my shell printed a "the horse says: no" box. |
 | 4 | ~4:30–4:35 PM | sshd logs showed a steady stream of `Accepted password for jmoney` from many different IPs, about every 10 to 30 seconds. |
@@ -52,13 +58,14 @@ All on Oct 17. Times are approximate and in Eastern. Steps are in the order I di
 | 8 | — | SSH check started flapping between green and red. Still the nologin message. |
 | 9 | — | Restarted sshd and firewalld. |
 | 10 | — | `/etc/crontab` and `/var/spool/cron` were clean. Found two cron files no package owns in `/etc/cron.d/`: `audit-backlogd` and `systemd-tmpfiles`. |
-| 11 | — | While deleting, `MHAHAHAHA...` showed up in my command history. |
+| 11 | — | While trying to delete the cron files, `MHAHAHAHA` and repeated `sudo nano systemd-tmpfiles` text showed up in my command line that I did not type, and my `rm` attempts kept failing with "No such file or directory." Someone else was actively typing into my session. |
 | 12 | — | Copied all four planted files to `~/evidence/`, cleared immutable flags, and deleted them. |
 | 13 | — | Reviewed firewalld and listening ports. |
 | 14 | — | The `a` key started typing `i` in my SSH session. |
 | 15 | — | While reviewing listening ports with `ss -tulpn`, found an unexpected listener on port 23 tied to a custom systemd socket, `telnet-bash.socket`, that spawned a bash shell for anyone who connected — basically an unauthenticated backdoor. |
-| 16 | ~3:05 PM | A live `wall` broadcast came through from root on the box: "that's alot of red huh." Confirmation someone else had concurrent root access while I was working. |
+| 16 | ~3:06 PM | A live `wall` broadcast came through from root on the box: "that's alot of red huh." Confirmation someone else had concurrent root access while I was working. |
 | 17 | — | Disabled and removed `telnet-bash.socket` and `telnet-bash@.service`, reloaded systemd, and confirmed port 23 was closed. |
+| 18 | — | Checked `/etc/ssh/sshd_config` and found `PermitRootLogin` uncommented and set to `yes`. Changed it to `no`, tested the config with `sudo sshd -t`, and restarted sshd. |
 
 ## Findings
 
@@ -66,17 +73,24 @@ The red team mostly hid things by naming them after real Linux components. The f
 
 Anything in `/etc/profile.d/` runs every time someone opens a shell, including the scoring check's SSH session. So `hugepages-compactd.sh` ran on every check, and as root whenever I opened a root shell.
 
-The planted files were also tagged internally with comments like `# >>> HPCC-REDTEAM:troll-banner >>>`, which confirmed they were deliberately placed by the exercise's red team rather than something pre-existing on the box.
-
 | Finding | Location | How I found it | Action |
 |---|---|---|---|
-| Horse error trap | `/etc/profile.d/99-horse.sh` | Ran `rpm -qf` on every file in `/etc/profile.d/` | Saved to evidence, deleted |
+| Telnet bind shell | `telnet-bash.socket` and `telnet-bash@.service` in `/etc/systemd/system/` | `sudo ss -tulpn` showed port 23 owned by systemd. `systemctl list-sockets` tied it to `telnet-bash.socket`, set to start a session for every connection (`Accept=yes`) | Disabled the socket, stopped running instances, deleted both unit files, ran `daemon-reload` |
+| Horse error trap | `/etc/profile.d/99-horse.sh` | Ran `rpm -qf` on every file in `/etc/profile.d/`. The file was tagged `HPCC-REDTEAM:troll-banner` and set an ERR trap that printed the banner after any failed command | Saved to evidence, deleted |
 | Disguised startup script | `/etc/profile.d/hugepages-compactd.sh` | Same check. Named to look like a kernel memory feature | Saved to evidence, deleted |
 | Disguised cron job | `/etc/cron.d/audit-backlogd` | `rpm -qf` on files in `/etc/cron.d/`. No real "audit-backlogd" exists | Saved to evidence, deleted |
 | Disguised cron job | `/etc/cron.d/systemd-tmpfiles` | Same check. The real systemd-tmpfiles runs from a systemd timer, not cron | Saved to evidence, deleted |
 | Scoring account broken | jmoney's login shell set to `/sbin/nologin` | Dashboard stdout said "This account is currently not available" | Set back to `/bin/bash` |
 | Key remap | `a` types `i` in bash | Noticed while typing | Source not found yet |
-| Backdoor shell | `/etc/systemd/system/telnet-bash.socket`, `/etc/systemd/system/telnet-bash@.service` | `ss -tulpn` and `systemctl list-sockets --all` showed a `:23` listener with no real telnetd behind it — a custom unit spawning a bash shell per connection | Disabled, stopped, deleted both unit files, reloaded systemd |
+| Root login allowed over SSH | `PermitRootLogin yes` in `/etc/ssh/sshd_config` | Reviewed sshd_config while hardening SSH | Set to `no`, tested with `sudo sshd -t`, restarted sshd |
+
+At 3:06 PM, root sent a `wall` broadcast to every terminal: "that's alot of red huh." The red team still had root on the box at that point.
+
+## Root login over SSH was enabled
+
+In `/etc/ssh/sshd_config`, `PermitRootLogin` was uncommented and set to `yes`. That let anyone with root's password log straight in as root over SSH, which may be one way the red team kept getting back in as root. I changed it to `PermitRootLogin no`, tested the config with `sudo sshd -t`, and restarted sshd.
+
+This was safe for scoring because the SSH checker logs in as jmoney, not root. Admins still get root through their own accounts with `sudo`, which also leaves a log of who did what.
 
 ## Scored SSH check
 
@@ -91,22 +105,24 @@ This changed my plan in two ways:
 
 The fix was `sudo usermod -s /bin/bash jmoney`. The check kept flapping after that, so something on the box was probably setting the shell back. The planted profile.d script and the two cron jobs are the likely causes.
 
+After my first fix, the SSH check started mixing green and red instead of staying red. A random pattern like this meant something on the box kept undoing my fix, which is what sent me looking for scheduled jobs and shell startup scripts.
+
 ## Firewall and exposed services
 
 The firewall had nothing planted in it. The public zone on eth0 allowed `dhcpv6-client`, `http`, `mdns`, and `ssh`, plus port `80/tcp`, with no rich rules and no port forwards. Cleanup is to drop `mdns`, the duplicate `80/tcp`, and probably `dhcpv6-client`, leaving `http` and `ssh`.
+
+Nothing on this box listens on port 80, and Open WebUI does not show up in the `ss` output. Open WebUI depends on a web server and database server run from a separate Windows host, so it's likely served from there — I have not confirmed this.
 
 | Port | Bound to | Likely service | Notes |
 |---|---|---|---|
 | 22 | all interfaces | sshd | Scored, keep open |
 | 23 | all interfaces | Backdoor: planted `telnet-bash.socket` | Found live, removed |
-| 8888 | 127.0.0.1 | Open WebUI (uvicorn) | Localhost only, good |
+| 8888 | 127.0.0.1 | otelcol-contrib (OpenTelemetry collector) | Localhost only |
 | 11434 | all interfaces | Ollama | No auth. Should be bound to 127.0.0.1 |
-| 9100 | all interfaces | node_exporter, confirmed via `systemctl list-sockets` | Legitimate monitoring exporter, but still exposed on all interfaces — should be restricted |
+| 9100 | all interfaces | node-exporter (systemd socket) | Prometheus metrics, not scored |
 | 5355 | all interfaces | LLMNR (systemd-resolved) | Not needed, can turn off |
 | 53 | 127.0.0.53, 127.0.0.54 | systemd-resolved DNS | Normal |
 | 323 | 127.0.0.1 | chronyd | Normal |
-
-One thing does not add up. The firewall allows port 80, but nothing listens on 80, and Open WebUI is only on localhost. Something must be passing outside traffic to it, and I have not found what yet.
 
 ## Open items
 
@@ -116,12 +132,13 @@ One thing does not add up. The firewall allows port 80, but nothing listens on 8
 - [ ] Confirm jmoney's shell stays `/bin/bash` and the SSH check stays green
 - [ ] Find where the `a` to `i` key remap is set (`/etc/inputrc`, `~/.inputrc`, or a `bind` line) and remove it
 - [ ] Figure out who typed `MHAHAHAHA`. Check `w` for other sessions
-- [ ] Find what passes port 80 traffic to Open WebUI on 127.0.0.1:8888
-- [x] Identify what is on port 9100 — confirmed node_exporter
+- [ ] Confirm whether Open WebUI is actually served through the web/database server on the separate Windows host
+- [x] Identify what is on port 9100 — confirmed node-exporter
 - [ ] Bind Ollama to 127.0.0.1
 - [ ] Change jmoney's password, if the rules allow it
 - [ ] Figure out how `telnet-bash.socket` got installed — no matching entry found yet in the planted profile.d scripts or cron jobs
 - [ ] Confirm port 23 stays closed after the next scoring cycle
+- [x] Lock down root login over SSH — `PermitRootLogin` set to `no`
 
 ## Lessons learned
 
