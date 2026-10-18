@@ -6,7 +6,7 @@ tags: Projects
 
 ## Overview
 
-I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI. The red team had left at least five pieces of persistence or sabotage on it, and the scored SSH check was failing because of one of them.
+This was part of **Horse Plinko**, a blue team exercise hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI. The red team had left at least five pieces of persistence or sabotage on it, and the scored SSH check was failing because of one of them.
 
 I found and removed two planted shell startup scripts and two disguised cron jobs, traced the SSH check failure to the scoring account's shell being set to `nologin`, and reviewed the firewall and listening ports. Some things are still unconfirmed, listed under Open items.
 
