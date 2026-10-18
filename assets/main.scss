@@ -1,0 +1,54 @@
+---
+---
+
+@charset "utf-8";
+
+// Blue-team accent palette
+$brand-color:       #1d4ed8 !default;
+$brand-color-light: lighten($brand-color, 42%) !default;
+$brand-color-dark:  darken($brand-color, 12%) !default;
+
+$site-title-color: $brand-color-dark !default;
+
+$text-color:       #1a1a1a !default;
+$background-color: #fdfdfe !default;
+
+$link-base-color:    $brand-color !default;
+$link-visited-color: darken($brand-color, 8%) !default;
+$link-hover-color:   lighten($brand-color, 12%) !default;
+
+$border-color-01: $brand-color-light !default;
+$border-color-02: lighten($brand-color, 30%) !default;
+$border-color-03: $brand-color !default;
+
+$table-text-color:      $text-color !default;
+$table-zebra-color:     lighten($brand-color, 48%) !default;
+$table-header-bg-color: $brand-color !default;
+$table-header-border:   darken($brand-color, 15%) !default;
+$table-border-color:    $brand-color-light !default;
+
+@import "minima";
+
+// Extra accents on top of the theme
+.post-content h2 {
+  color: $brand-color-dark;
+  border-bottom: 3px solid $brand-color;
+  padding-bottom: 0.2em;
+}
+
+.post-content h3 {
+  color: $brand-color-dark;
+}
+
+.post-content table th {
+  color: #fff;
+}
+
+.post-content code {
+  color: $brand-color-dark;
+  background-color: $brand-color-light;
+}
+
+.post-content a {
+  text-decoration-color: $brand-color-light;
+}
