@@ -8,7 +8,7 @@ tags: Projects
 
 This was a part of the Horse Plinko Cyber Challenge, a blue team competition hosted by the University of Central Florida. I defended ignition-13, a Fedora box with two scored services: SSH and Open WebUI, against a red team that had already planted persistence and sabotage on the box before I started. The red team had left at least seven pieces of persistence or sabotage on it, and the scored SSH check was failing because of one of them.
 
-Per the competition's Blue Team Packet, ignition's only real dependencies are local: Ollama running on the box as the LLM backend for Open WebUI, and an OpenTelemetry collector that ships ignition's system journal and audit log to the team's OpenObserve SIEM on blackbox. There's no separate Windows host in the dependency chain — a theory I'd floated while investigating the box turned out to be wrong, corrected below.
+Per the competition's Blue Team Packet, ignition runs Ollama locally as the LLM backend for Open WebUI's chat models, and ships its system journal and audit log to the team's OpenObserve SIEM on blackbox via an OpenTelemetry collector. Open WebUI itself also depends on a database hosted on manifest, the team's other Windows box — so ignition isn't as self-contained as it first looks.
 
 Over the course of the engagement I had to deal with, from the red team:
 
@@ -37,7 +37,7 @@ The scoring dashboard shows each check as a row of green and red bars, with the 
 | OS | Fedora, bash 5.2, firewalld, SELinux |
 | Internal IP | 172.16.13.20 |
 | My account | plinktern, connecting from 172.16.13.250 |
-| Scored services | SSH (logs in as jmoney with a password, runs `echo ok`) and Open WebUI (jmoney@plinko.horse, backed by Ollama) |
+| Scored services | SSH (logs in as jmoney with a password, runs `echo ok`) and Open WebUI (jmoney@plinko.horse, backed by Ollama and a database on manifest, the Windows box) |
 | Services on the box | Ollama (port 11434) — LLM backend for Open WebUI, node-exporter (port 9100), OpenTelemetry collector (127.0.0.1:8888) — ships journal/audit logs to OpenObserve on blackbox |
 
 ## First things after SSHing in
@@ -166,7 +166,7 @@ The firewall had nothing planted in it. The public zone on eth0 allowed `dhcpv6-
 
 ![firewall-cmd --list-all output showing the public zone's allowed services and ports](/assets/img/horse-plinko/10-firewall-review.png)
 
-Nothing on this box listens on port 80, and Open WebUI's own web server doesn't show up in the `ss` output either — just Ollama and the OpenTelemetry collector. I'd originally guessed it was served from a separate Windows host, but the competition's Blue Team Packet confirms ignition's only dependencies are local (Ollama) or log-shipping (the OpenTelemetry collector to OpenObserve on blackbox), so that theory is out. What's actually meant to answer on port 80 is still unconfirmed.
+Nothing on this box listens on port 80, and Open WebUI's own web server doesn't show up in the `ss` output either — just Ollama and the OpenTelemetry collector. Open WebUI does depend on a database on manifest, the team's other Windows box, which fits: the box itself only needs to serve the chat UI, while the data it reads and writes lives elsewhere. What's actually meant to answer on port 80 locally is still unconfirmed.
 
 ![Initial ss -tulpn run without sudo, showing listeners on 9100, 8888, and 11434 with no process names](/assets/img/horse-plinko/11-listening-ports.png)
 
